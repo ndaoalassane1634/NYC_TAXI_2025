@@ -1,5 +1,5 @@
 {
-  "branches": ["main", "dev"],
+  "branches": ["main", "develop"],
   "repositoryUrl": "https://github.com/ndaoalassane1634/NYC_TAXI_2025",
   "plugins": [
     "@semantic-release/commit-analyzer",

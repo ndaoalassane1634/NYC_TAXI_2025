@@ -4,24 +4,39 @@ on:
   push:
     branches:
       - main
+      - develop
 
 jobs:
   release:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write          # nécessaire pour créer les tags & changelogs
+      issues: write            # facultatif, pour commenter sur des issues
+      pull-requests: write     # facultatif, pour commenter sur des PRs
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0       # nécessaire pour que semantic-release voie tout l’historique Git
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
       - name: Install dependencies
-        run: npm ci || npm install
+        run: npm ci
 
-      - name: Semantic Release
+      # Optionnel : tu peux ajouter un dry-run pour vérifier avant la première exécution
+      # - name: Semantic Release (dry run)
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: npx semantic-release --dry-run
+
+      - name: 🚀 Run Semantic Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release

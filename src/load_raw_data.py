@@ -83,6 +83,6 @@ def download_all_available(year: int = 2025) -> list:
     return downloaded_files
 
 
-# ▶️ Exécution directe du script
+# Exécution directe du script
 if __name__ == "__main__":
     download_all_available(2025)

@@ -1,0 +1,43 @@
+[project]
+name = "nyc-taxi-2025"
+version = "0.1.0"
+description = "Projet Data Engineering – Pipeline NYC Taxi 2025 (DuckDB, PostgreSQL, MongoDB, Docker)"
+authors = [
+    { name = "Alassane Ndao" }
+]
+requires-python = ">=3.10,<3.11"
+
+dependencies = [
+    # Core
+    "pandas>=2.2.0",
+    "pyarrow>=15.0.0",
+    "duckdb>=1.0.0",
+    "numpy>=1.26.0",
+
+    # Bases de données
+    "sqlalchemy>=2.0.0",
+    "psycopg2-binary>=2.9.9",  # PostgreSQL
+    "pymongo>=4.7.0",          # MongoDB
+
+    # Data & outils
+    "python-dotenv>=1.0.1",
+    "tqdm>=4.66.0",
+    "requests>=2.31.0",
+
+    # Tests et qualité
+    "pytest>=8.0.0",
+    "black>=24.0.0",
+    "flake8>=7.0.0"
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+# Dossier contenant ton code source
+src = "src"

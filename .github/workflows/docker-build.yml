@@ -1,0 +1,41 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # permet de le lancer manuellement aussi
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write  # nécessaire pour publier sur GHCR
+      id-token: write
+
+    steps:
+      # Étape 1 - Récupérer le code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Étape 2 - Connexion au registry GitHub
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Étape 3 - Construire l’image Docker
+      - name: Build Docker image
+        run: |
+          IMAGE_NAME=ghcr.io/${{ github.repository }}:latest
+          docker build -t $IMAGE_NAME .
+
+      # Étape 4 - Pousser l’image vers le registry
+      - name: Push Docker image
+        run: |
+          IMAGE_NAME=ghcr.io/${{ github.repository }}:latest
+          docker push $IMAGE_NAME

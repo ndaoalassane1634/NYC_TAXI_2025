@@ -8,64 +8,95 @@ Classe PostgresImporter
 - Crée les tables yellow_taxi_trips et import_log si elles n’existent pas
 """
 
+# src/import_to_postgres.py
 import os
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import text
+from src.api.database import engine
 from dotenv import load_dotenv
 
-# Charger les variables d'environnement
 load_dotenv()
 
 class PostgresImporter:
     def __init__(self):
-        # Configuration de connexion PostgreSQL
-        self.user = os.getenv("POSTGRES_USER", "taxi_user")
-        self.password = os.getenv("POSTGRES_PASSWORD", "taxi-2025")
-        self.host = os.getenv("POSTGRES_HOST", "localhost")
-        self.db = os.getenv("POSTGRES_DB", "taxi_db")
+        self.engine = engine
+        print("[INFO] Connexion PostgreSQL OK ✅")
 
-        # Construire l’URL de connexion SQLAlchemy
-        self.db_url = f"postgresql://{self.user}:{self.password}@{self.host}/{self.db}"
-        self.engine = create_engine(self.db_url)
+    # --- Crée une table en fonction d’un DataFrame ---
+    def create_table_from_df(self, table_name: str, df: pd.DataFrame):
+        """Crée automatiquement une table PostgreSQL à partir du schéma d'un DataFrame"""
+        dtype_mapping = {
+            "int64": "BIGINT",
+            "float64": "DOUBLE PRECISION",
+            "object": "TEXT",
+            "datetime64[ns]": "TIMESTAMP",
+            "bool": "BOOLEAN"
+        }
 
-        print(f"[INFO] Connexion à PostgreSQL établie sur {self.db}")
+        # Conversion dynamique des colonnes
+        columns = []
+        for col, dtype in df.dtypes.items():
+            pg_type = dtype_mapping.get(str(dtype), "TEXT")
+            columns.append(f'"{col}" {pg_type}')
+        
+        create_sql = ",\n    ".join(columns)
 
-    def import_yellow_taxi_data(self, csv_path: str):
+        query = f"""
+        CREATE TABLE IF NOT EXISTS {table_name} (
+            {create_sql}
+        );
         """
-        Importe les données du fichier CSV dans la table yellow_taxi_trips.
-        """
-        print(f"[INFO] Import du fichier : {csv_path}")
-        df = pd.read_csv(csv_path)
 
-        # Insérer dans la base via pandas.to_sql()
+        with self.engine.begin() as conn:
+            conn.execute(text(query))
+
+        print(f"[INFO] Table '{table_name}' créée ou déjà existante.")
+
+    # --- Importe un fichier Parquet ---
+    def import_parquet(self, parquet_path: str, table_name: str):
+        print(f"[INFO] Import du fichier : {parquet_path}")
+        df = pd.read_parquet(parquet_path)
+
+        # Normaliser les noms de colonnes
+        df.columns = [c.lower().replace(" ", "_") for c in df.columns]
+
+        # Créer la table si elle n’existe pas encore
+        self.create_table_from_df(table_name, df)
+
+        # Insérer dans PostgreSQL
         df.to_sql(
-            "yellow_taxi_trips",
+            table_name,
             self.engine,
-            if_exists="append",  # append → ajoute les données sans supprimer
+            if_exists="append",
             index=False,
             chunksize=10_000
         )
-        print(f"[OK] {len(df)} lignes insérées dans yellow_taxi_trips")
+        print(f"[OK] {len(df)} lignes importées dans {table_name}")
 
-        # Ajouter une entrée dans le journal d'import
-        self.log_import(csv_path, len(df))
+        # Journaliser
+        self.log_import(parquet_path, len(df))
 
+    # --- Journal des imports ---
     def log_import(self, file_name: str, row_count: int):
-        """
-        Insère une ligne dans la table import_log.
-        """
         log_df = pd.DataFrame([{
             "file_name": file_name,
-            "row_count": row_count
+            "row_count": row_count,
+            "status": "imported"
         }])
+
+        # Crée la table de log si elle n'existe pas
+        self.create_table_from_df("import_logs", log_df)
+
         log_df.to_sql(
-            "import_log",
+            "import_logs",
             self.engine,
             if_exists="append",
             index=False
         )
-        print(f"[LOG] Import de {file_name} enregistré dans import_log")
+        print(f"[LOG] Import de {file_name} enregistré ({row_count} lignes).")
+
 
 if __name__ == "__main__":
     importer = PostgresImporter()
-    importer.import_yellow_taxi_data("data/yellow_tripdata_2024-01.csv")
+
+

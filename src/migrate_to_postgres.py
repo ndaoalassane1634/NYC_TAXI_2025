@@ -45,7 +45,10 @@ for table in tables:
 
     # Création de la table dans PostgreSQL
     print(f"  Création de la table {table} si elle n'existe pas...")
-    pg_cur.execute(f"CREATE TABLE IF NOT EXISTS {table} ({pg_columns});")
+    if table == 'yellow_taxi_trips':
+        pg_cur.execute(f"CREATE TABLE IF NOT EXISTS {table} (id SERIAL PRIMARY KEY, {pg_columns});")
+    else:
+        pg_cur.execute(f"CREATE TABLE IF NOT EXISTS {table} ({pg_columns});")
     pg_conn.commit()
 
     # Vider la table avant insertion pour éviter les doublons
@@ -56,7 +59,7 @@ for table in tables:
     # Récupération et insertion des données par lots
     print(f"  Insertion des données dans {table}...")
     duck_cursor = duck_conn.cursor()
-    duck_cursor.execute(f"SELECT * FROM {table}")
+    duck_cursor.execute(f"SELECT * FROM {table} LIMIT 100000")
     
     total_rows_inserted = 0
     chunk_size = 10000  # Vous pouvez ajuster cette taille

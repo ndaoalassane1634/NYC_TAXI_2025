@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copier le code source et les données
 COPY src/ ./src/
-COPY data/ ./data/
+# COPY data/ ./data/
 
 # Exposer le port utilisé par l’application
 EXPOSE 8000

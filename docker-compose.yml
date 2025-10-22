@@ -46,7 +46,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-taxi_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-taxi_2025}
       POSTGRES_DB: ${POSTGRES_DB:-taxi_db}
-      POSTGRES_HOST: postgres
+      POSTGRES_HOST: localhost #à remplacer par postgres si dockrisé
       POSTGRES_PORT: 5432
     volumes:
       - ./data:/app/data
@@ -66,7 +66,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-taxi_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-taxi_2025}
       POSTGRES_DB: ${POSTGRES_DB:-taxi_db}
-      POSTGRES_HOST: postgres
+      POSTGRES_HOST: postgres 
       POSTGRES_PORT: 5432
     ports:
       - "8000:8000"
@@ -78,5 +78,24 @@ services:
         condition: service_completed_successfully
     command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
 
+  mongodb:
+    image: mongo:6.0
+    container_name: nyc-taxi-mongodb
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-admin123}
+      - MONGO_INITDB_DATABASE=${MONGO_DB:-nyc_taxi}
+      - MONGO_HOST=localhost #à remplacer par mongodb si dockrisé
+    ports:
+      - "27017:27017"
+    # healthcheck:
+    #   test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 5
+    volumes:
+      - mongodb_data:/data/db
+
 volumes:
   postgres_data:
+  mongodb_data:

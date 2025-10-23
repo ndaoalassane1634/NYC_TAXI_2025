@@ -11,7 +11,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-taxi_user}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-taxi_user} -d ${POSTGRES_DB:-taxi_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -46,7 +46,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-taxi_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-taxi_2025}
       POSTGRES_DB: ${POSTGRES_DB:-taxi_db}
-      POSTGRES_HOST: localhost #à remplacer par postgres si dockrisé
+      POSTGRES_HOST: postgres 
       POSTGRES_PORT: 5432
     volumes:
       - ./data:/app/data
@@ -56,6 +56,28 @@ services:
       duckdb-importer:
         condition: service_completed_successfully
     command: python src/migrate_to_postgres.py
+
+  data-cleaner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nyc-taxi-data-cleaner
+    environment:
+      - RUNNING_IN_DOCKER=true
+      - POSTGRES_USER=${POSTGRES_USER:-taxi_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-taxi_2025}
+      - POSTGRES_DB=${POSTGRES_DB:-taxi_db}
+      - POSTGRES_HOST=postgres
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-admin123}
+      - MONGO_DATABASE=${MONGO_DB:-nyc_taxi}
+      - MONGO_HOST=mongodb
+    depends_on:
+      postgres-migrator:
+        condition: service_completed_successfully
+      mongodb:
+        condition: service_healthy
+    command: python src/data_cleaner.py
 
   app:
     build:
@@ -74,7 +96,7 @@ services:
       - ./data:/app/data
       - ./src:/app/src
     depends_on:
-      postgres-migrator:
+      data-cleaner:
         condition: service_completed_successfully
     command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
 
@@ -85,14 +107,13 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER:-admin}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-admin123}
       - MONGO_INITDB_DATABASE=${MONGO_DB:-nyc_taxi}
-      - MONGO_HOST=localhost #à remplacer par mongodb si dockrisé
     ports:
       - "27017:27017"
-    # healthcheck:
-    #   test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
-    #   interval: 10s
-    #   timeout: 5s
-    #   retries: 5
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - mongodb_data:/data/db
 

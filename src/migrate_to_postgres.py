@@ -14,7 +14,7 @@ pg_conn = psycopg2.connect(
     host=os.getenv("POSTGRES_HOST", "localhost"),
     database=os.getenv("POSTGRES_DB", "taxi_db"),
     user=os.getenv("POSTGRES_USER", "taxi_user"),
-    password=os.getenv("POSTGRES_PASSWORD", "taxi-2025")
+    password=os.getenv("POSTGRES_PASSWORD", "taxi_2025")
 )
 pg_cur = pg_conn.cursor()
 
@@ -59,7 +59,7 @@ for table in tables:
     # Récupération et insertion des données par lots
     print(f"  Insertion des données dans {table}...")
     duck_cursor = duck_conn.cursor()
-    duck_cursor.execute(f"SELECT * FROM {table} LIMIT 100000")
+    duck_cursor.execute(f"SELECT * FROM {table} LIMIT 1000000")
     
     total_rows_inserted = 0
     chunk_size = 10000  # Vous pouvez ajuster cette taille

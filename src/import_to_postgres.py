@@ -20,7 +20,7 @@ load_dotenv()
 class PostgresImporter:
     def __init__(self):
         self.engine = engine
-        print("[INFO] Connexion PostgreSQL OK ✅")
+        print("[INFO] Connexion PostgreSQL OK ")
 
     # --- Crée une table en fonction d’un DataFrame ---
     def create_table_from_df(self, table_name: str, df: pd.DataFrame):
